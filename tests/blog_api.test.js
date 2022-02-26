@@ -5,13 +5,12 @@ const api = supertest(app)
 const Blog = require('../models/blog')
 const { initBlogs, newBlog, newBlogWithNoLikes, newBlogWithNoUrl, newBlogWithNoTitle } = require('./test_helper')
 
-beforeEach(async () => {
-  await Blog.deleteMany({})
-  const promises = initBlogs.map(async (x) => (new Blog(x)).save())
-  await Promise.all(promises)
-})
-
 describe('when there is initially some blogs saved', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
+    const promises = initBlogs.map(async (x) => (new Blog(x)).save())
+    await Promise.all(promises)
+  })
   test('blogs are returned as json', async () => {
     await api.get('/api/blogs')
       .expect(200)
@@ -53,6 +52,32 @@ describe('when there is initially some blogs saved', () => {
     } catch (e) {
       expect(e.status).toBe(400)
     }
+  })
+  test('of deleting a blog will return 200 when it\'s found', async () => {
+    const resBefore = await api.get('/api/blogs')
+    const b = resBefore.body[0]
+    await api.delete(`/api/blogs/${b.id}`)
+    const res = await api.get('/api/blogs')
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveLength(resBefore.body.length - 1)
+  })
+  test('of deleting a blog will return 204 when it\'s not found', async () => {
+    const res = await api.delete(`/api/blogs/6219df9d3009291fdd0e590b`)
+    expect(res.status).toBe(404)
+
+    const res2 = await api.get('/api/blogs')
+    expect(res2.body).toHaveLength(initBlogs.length)
+  })
+  test('update blog\'s likes', async () => {
+    const resBefore = await api.get('/api/blogs')
+    const b = resBefore.body[0]
+    const newObj = Object.assign({}, b, {likes: 100})
+    const res = await api.put(`/api/blogs/${b.id}`).send(newObj)
+    expect(res.status).toBe(200)
+
+    const resAfter = await api.get('/api/blogs')
+    const bAfter = resAfter.body[0]
+    expect(bAfter).toEqual(Object.assign({}, b, {likes: 100}))
   })
 })
 
