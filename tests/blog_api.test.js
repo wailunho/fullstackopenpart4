@@ -8,7 +8,7 @@ const { initBlogs, newBlog, newBlogWithNoLikes, newBlogWithNoUrl, newBlogWithNoT
 describe('when there is initially some blogs saved', () => {
   beforeEach(async () => {
     await Blog.deleteMany({})
-    const promises = initBlogs.map(async (x) => (new Blog(x)).save())
+    const promises = initBlogs.map(x => api.post('/api/blogs').send(newBlog))
     await Promise.all(promises)
   })
   test('blogs are returned as json', async () => {
